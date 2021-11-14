@@ -1,46 +1,59 @@
-import { FC, ReactElement, useCallback, useState } from 'react';
+import { FC, ReactElement, useCallback, useEffect, useReducer } from 'react';
 import TdInput from './Input';
 import TdList from './List';
-import { ITodo } from './typings';
+import { ACTION_TYPE, ITodo } from './typings';
+import todoReducer, { getInitialState } from './reducer';
+import { getStoreItem, setStoreItem } from '../../utils/localStorage';
 
 interface IProps {}
 
 const TodoList: FC<IProps> = (): ReactElement => {
   // 初始化state
-  const [todoList, setTodoList] = useState<ITodo[]>([]);
+  const [state, dispatch] = useReducer(todoReducer, [], getInitialState);
 
-  const toggleTodo = useCallback(function (id: number): void {
-    setTodoList((preState: ITodo[]): ITodo[] =>
-      preState.map(
-        (todo: ITodo): ITodo =>
-          todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    );
+  const toggleTodo = useCallback((id: number): void => {
+    dispatch({
+      type: ACTION_TYPE.TOGGLE_TODO,
+      payload: id,
+    });
   }, []);
 
   const removeTodo = useCallback((id: number): void => {
-    setTodoList((preState: ITodo[]): ITodo[] =>
-      preState.filter((todo: ITodo): boolean => todo.id !== id)
-    );
+    dispatch({
+      type: ACTION_TYPE.REMOVE_TODO,
+      payload: id,
+    });
   }, []);
 
-  // TODO: 这个函数不知道为什么获取 state 都是初始值
-  // codesandbox.io 简单模拟不会出现这个问题
-  const addTodo = (newTodo: ITodo): boolean => {
-    setTodoList((prevTodoList:ITodo[]) => {
-      const isExist = prevTodoList.some((todo) => todo.content === newTodo.content)
-      return isExist ? prevTodoList : [...prevTodoList.concat(newTodo)]
+  const addTodo = useCallback((newTodo: ITodo): void => {
+    dispatch({
+      type: ACTION_TYPE.ADD_TODO,
+      payload: newTodo,
     });
+  }, []);
 
-    // 以上原因，先返回true
-    return true
-  }
+  const clearTodo = useCallback(():void => {
+    dispatch({type: ACTION_TYPE.CLEAR_TODO})
+  }, [])
+
+  // mounted
+  useEffect(() => {
+    dispatch({
+      type: ACTION_TYPE.INIT_TODO,
+      payload: getStoreItem('todoList') as ITodo[],
+    });
+  }, []);
+
+  // update
+  useEffect(() => {
+    setStoreItem('todoList', state.todoList);
+  }, [state.todoList]);
 
   return (
     <div className="todo-list">
-      <TdInput addTodo={addTodo}/>
+      <TdInput addTodo={addTodo} todoList={state.todoList} clearTodo={clearTodo} />
       <TdList
-        todoList={todoList}
+        todoList={state.todoList}
         toggleTodo={toggleTodo}
         removeTodo={removeTodo}
       ></TdList>

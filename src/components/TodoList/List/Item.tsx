@@ -16,7 +16,7 @@ const TdItem: FC<IProps> = ({
     <div className="td-item">
       <input
         type="checkbox"
-        id=""
+        checked={completed}
         onChange={() => toggleTodo(id)}
         value={content}
       />
